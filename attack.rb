@@ -43,7 +43,7 @@ end
 
 
 
-def permutationsOfAttacksDiceResult(evades, foci, blanks)
+def permutationsOfDefenseDiceResult(evades, foci, blanks)
   # The defence dice have: 3 x evade, 2 x focus, 3 x blank
 
   # Standard formula for a k-Combination with repretitions is n!/(m1! * m2! ... )
@@ -56,7 +56,7 @@ def permutationsOfAttacksDiceResult(evades, foci, blanks)
 end
 
 
-def permutationsOfAttacksDiceResult(hits, crits, foci, blanks)
+def permutationsOfAttackDiceResult(hits, crits, foci, blanks)
   # The attack dice have: 1 x crit, 3 x hit, 2 x focus, 2 x blank
 
   # Standard formula for a k-Combination with repretitions is n!/(m1! * m2! ... )
@@ -67,6 +67,60 @@ def permutationsOfAttacksDiceResult(hits, crits, foci, blanks)
         ( hits.factorial * crits.factorial * foci.factorial * blanks.factorial) *
         3 ** hits *  2 ** foci *  2 ** blanks
 end
+
+
+
+# ===============================================================================================================
+# Simulator
+# ===============================================================================================================
+
+def attack(attackerStrength = 0, defenderStrength = 0, defenderShields = 0, distance = 2, attackerTokens = [], defenderTokens = [])
+    
+  result = 0;
+  
+  # returns expected damage
+  effectiveAttackerStrength = attackerStrength + (distance == 1 ? 1 : 0)
+  effectiveDefenderStrength = defenderStrength + (distance == 3 ? 1 : 0)
+  
+  totalPermutations = 8 ** effectiveAttackerStrength
+  
+  for rolledDamage in 0..effectiveAttackerStrength
+    for rolledCrits in 0..(effectiveAttackerStrength-rolledDamage)
+      for rolledFoci in 0..(effectiveAttackerStrength-rolledDamage-rolledCrits)
+        rolledBlanks = effectiveAttackerStrength - attackerDamage - attackerCrits - rolledFoci
+
+        occurancesOfAttackRoll =  permutationsOfAttackDiceResult(rolledDamage, rolledCrits, rolledFoci, rolledBlanks)
+
+        # TODO attacker modifies his foci
+        # TODO attacker uses target locks
+
+        for rolledDefenderEvades in 0..effectiveDefenderStrength
+          for rolledDefenderFoci in 0..(effectiveDefenderStrength-rolledDefenderEvades)
+            rolledBlanks = effectiveDefenderStrength - rolledDefenderEvades - rolledDefenderFoci
+
+            occurancesOfDefenderRoll =  permutationsOfDefenseDiceResult(rolledDefenderEvade, rolledDefenderFoci, rolledDefenderBlanks)
+            # TODO defender modifies his foci
+            # TODO attacker uses evade tokens
+
+            effectiveHitsOfThisRoll   = [rolledDamage - rolledDefenderEvades, 0].max
+            remainingEvades           = [rolledDefenderEvades - rolledDamage, 0].max
+            effectiveCritsOfThisRoll  = [rolledCrits - remainingEvades, 0].max
+        
+            result += occurancesOfThisRoll * effectiveDamageOfThisRoll
+
+
+          end
+        end
+
+        
+      end        
+    end
+  end
+
+  return result / totalPermutations
+    
+end
+
 
 
 def testProbabilityFunctions
@@ -81,35 +135,16 @@ def testProbabilityFunctions
   assert { permutationsOfAttacksDiceResult(0,0,0,1) == 2}
   assert { permutationsOfAttacksDiceResult(1,1,0,0) == 6}
   assert { permutationsOfAttacksDiceResult(0,0,2,2) == 96}
+
+
+  assert { permutationsOfDefenseDiceResult(1,0,0) == 3}
+  assert { permutationsOfDefenseDiceResult(0,1,0) == 2}
+  assert { permutationsOfDefenseDiceResult(0,0,1) == 3}
+  
+  assert { permutationsOfDefenseDiceResult(1,1,0) == 12}
+  assert { permutationsOfDefenseDiceResult(0,0,2) == 9}
+
 end
-
-
-
-# ===============================================================================================================
-# Simulator
-# ===============================================================================================================
-
-# 
-# def attack(attackerStrength = 0, defenderStrength = 0, defenderShields = 0, distance = 2, attackerTokens = [], defenderTokens = [])
-#     
-#     
-#     # returns expected damage
-#     effectiveAttackerStrength = attackerStrength + (distance == 1 ? 1 : 0)
-#     effectiveDefenderStrength = defenderStrength + (distance == 3 ? 1 : 0)
-#     
-#     for attackerDamage in 0..effectiveAttackerStrength
-#       for attackerCrits in 0..(effectiveAttackerStrength-attackerDamage)
-#         blanks = effectiveAttackerStrength - attackerDamage - attackerCrits
-#         probabilityOfThisRoll =  permutationsOfDiceResult()
-#         effectiveDamageOfThisRoll = 0
-#         
-#       end
-#     end
-#     
-#     
-# end
-
-
 
 # ---- Main Script ----------------------------------------------------------------------------------------------
 
