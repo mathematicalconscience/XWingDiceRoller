@@ -76,18 +76,19 @@ end
 
 def attack(attackerStrength = 0, defenderStrength = 0, defenderShields = 0, distance = 2, attackerTokens = [], defenderTokens = [])
     
-  result = 0;
+  expectedHits = 0;
+  expectedCrits = 0;
   
   # returns expected damage
   effectiveAttackerStrength = attackerStrength + (distance == 1 ? 1 : 0)
   effectiveDefenderStrength = defenderStrength + (distance == 3 ? 1 : 0)
   
-  totalPermutations = 8 ** effectiveAttackerStrength
+  totalPermutations = 8 ** (effectiveAttackerStrength + effectiveDefenderStrength)
   
   for rolledDamage in 0..effectiveAttackerStrength
     for rolledCrits in 0..(effectiveAttackerStrength-rolledDamage)
       for rolledFoci in 0..(effectiveAttackerStrength-rolledDamage-rolledCrits)
-        rolledBlanks = effectiveAttackerStrength - attackerDamage - attackerCrits - rolledFoci
+        rolledBlanks = effectiveAttackerStrength - rolledDamage - rolledCrits - rolledFoci
 
         occurancesOfAttackRoll =  permutationsOfAttackDiceResult(rolledDamage, rolledCrits, rolledFoci, rolledBlanks)
 
@@ -96,9 +97,9 @@ def attack(attackerStrength = 0, defenderStrength = 0, defenderShields = 0, dist
 
         for rolledDefenderEvades in 0..effectiveDefenderStrength
           for rolledDefenderFoci in 0..(effectiveDefenderStrength-rolledDefenderEvades)
-            rolledBlanks = effectiveDefenderStrength - rolledDefenderEvades - rolledDefenderFoci
+            rolledDefenderBlanks = effectiveDefenderStrength - rolledDefenderEvades - rolledDefenderFoci
 
-            occurancesOfDefenderRoll =  permutationsOfDefenseDiceResult(rolledDefenderEvade, rolledDefenderFoci, rolledDefenderBlanks)
+            occurancesOfDefenderRoll =  permutationsOfDefenseDiceResult(rolledDefenderEvades, rolledDefenderFoci, rolledDefenderBlanks)
             # TODO defender modifies his foci
             # TODO attacker uses evade tokens
 
@@ -106,7 +107,8 @@ def attack(attackerStrength = 0, defenderStrength = 0, defenderShields = 0, dist
             remainingEvades           = [rolledDefenderEvades - rolledDamage, 0].max
             effectiveCritsOfThisRoll  = [rolledCrits - remainingEvades, 0].max
         
-            result += occurancesOfThisRoll * effectiveDamageOfThisRoll
+            expectedHits += occurancesOfAttackRoll * occurancesOfDefenderRoll * effectiveHitsOfThisRoll
+            expectedCrits += occurancesOfAttackRoll * occurancesOfDefenderRoll * effectiveCritsOfThisRoll
 
 
           end
@@ -117,7 +119,7 @@ def attack(attackerStrength = 0, defenderStrength = 0, defenderShields = 0, dist
     end
   end
 
-  return result / totalPermutations
+  return [expectedHits / totalPermutations,  expectedCrits / totalPermutations] 
     
 end
 
@@ -129,18 +131,17 @@ def testProbabilityFunctions
   assert {3.factorial == 6}
   assert {6.factorial == 720}
   
-  assert { permutationsOfAttacksDiceResult(1,0,0,0) == 3}
-  assert { permutationsOfAttacksDiceResult(0,1,0,0) == 1}
-  assert { permutationsOfAttacksDiceResult(0,0,1,0) == 2}
-  assert { permutationsOfAttacksDiceResult(0,0,0,1) == 2}
-  assert { permutationsOfAttacksDiceResult(1,1,0,0) == 6}
-  assert { permutationsOfAttacksDiceResult(0,0,2,2) == 96}
+  assert { permutationsOfAttackDiceResult(1,0,0,0) == 3}
+  assert { permutationsOfAttackDiceResult(0,1,0,0) == 1}
+  assert { permutationsOfAttackDiceResult(0,0,1,0) == 2}
+  assert { permutationsOfAttackDiceResult(0,0,0,1) == 2}
+  assert { permutationsOfAttackDiceResult(1,1,0,0) == 6}
+  assert { permutationsOfAttackDiceResult(0,0,2,2) == 96}
 
 
   assert { permutationsOfDefenseDiceResult(1,0,0) == 3}
   assert { permutationsOfDefenseDiceResult(0,1,0) == 2}
   assert { permutationsOfDefenseDiceResult(0,0,1) == 3}
-  
   assert { permutationsOfDefenseDiceResult(1,1,0) == 12}
   assert { permutationsOfDefenseDiceResult(0,0,2) == 9}
 
@@ -151,6 +152,11 @@ end
 execTime = time do
   Fixnum.computeFactorials
   testProbabilityFunctions
+  
+  puts attack(1,0)
+  puts attack(0,1)
+  puts attack(2,3)
+  puts attack(4,2,0,1)
 end
 
 puts "Script execution time: #{execTime} seconds\n"
